@@ -21,7 +21,7 @@
       50% { background-color: #00f7ff; }
       100% { background-color: #ff00ff; }
     }
-    .glow { animation: glow 2s infinite; }
+    .glow-on-event { animation: glow 2s; }
     .pulse { animation: pulse 1s; }
     .flash { animation: flash 1s 3; }
     .star {
@@ -30,20 +30,23 @@
       border-radius: 50%;
       opacity: 0.7;
     }
+    body {
+      background: transparent !important;
+    }
   </style>
 </head>
-<body class="bg-gradient-to-b from-blue-900 to-black h-screen flex items-center justify-center overflow-hidden">
+<body class="h-screen flex items-center justify-center overflow-hidden">
   <!-- Background stars -->
   <div id="stars"></div>
 
   <div class="relative w-full max-w-4xl flex flex-col items-center">
     <!-- Username -->
-    <div class="absolute top-4 left-4 text-3xl font-bold text-white glow" style="text-shadow: 0 0 10px #ff00ff;">
+    <div class="absolute top-4 left-4 text-3xl font-bold text-white" style="text-shadow: 0 0 10px #ff00ff;" id="username">
       SK3TCH.FPS
     </div>
 
     <!-- Logo (Replace with your logo URL) -->
-    <img src="https://i.imgur.com/rDZ3WuU.png" alt="Logo" class="w-32 h-32 glow" id="logo">
+    <img src="YOUR_LOGO_URL_HERE" alt="Logo" class="w-32 h-32" id="logo">
 
     <!-- Level/Points -->
     <div class="mt-4 text-2xl font-bold text-white" style="text-shadow: 0 0 10px #00f7ff;">
@@ -52,15 +55,15 @@
 
     <!-- Stats -->
     <div class="absolute top-4 right-4 flex space-x-4">
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg glow">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
         <p class="text-white text-sm">FOLLOWS</p>
         <p class="text-white text-lg font-bold text-center" id="follows">1000</p>
       </div>
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg glow">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
         <p class="text-white text-sm">SUBS</p>
         <p class="text-white text-lg font-bold text-center" id="subs">50</p>
       </div>
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg glow">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
         <p class="text-white text-sm">RAIDS</p>
         <p class="text-white text-lg font-bold text-center" id="raids">5</p>
       </div>
@@ -84,39 +87,50 @@
     }
 
     // Stats elements
+    const usernameEl = document.getElementById('username');
+    const logoEl = document.getElementById('logo');
     const followsEl = document.getElementById('follows');
     const subsEl = document.getElementById('subs');
     const raidsEl = document.getElementById('raids');
     const eventMessageEl = document.getElementById('event-message');
 
-    // Simulate WebSocket (replace with actual WebSocket connection)
-    function simulateWebSocket() {
-      setTimeout(() => {
-        handleEvent({ type: 'follow', username: 'NewFollower' });
-      }, 5000);
-      setTimeout(() => {
-        handleEvent({ type: 'subscribe', username: 'NewSub' });
-      }, 10000);
-      setTimeout(() => {
-        handleEvent({ type: 'raid', username: 'Raider', viewers: 20 });
-      }, 15000);
-    }
+    // Connect to your new alert system's WebSocket
+    const ws = new WebSocket('wss://your-new-alert-system-websocket-url');
+    ws.onopen = () => {
+      console.log('Connected to WebSocket');
+    };
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      handleEvent(data);
+    };
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
 
     // Handle events
     function handleEvent(event) {
       if (event.type === 'follow') {
         followsEl.textContent = parseInt(followsEl.textContent) + 1;
         followsEl.parentElement.classList.add('pulse');
+        followsEl.parentElement.classList.add('glow-on-event'); // Glow on event
         showEventMessage(`New Follower: ${event.username}!`);
       } else if (event.type === 'subscribe') {
         subsEl.textContent = parseInt(subsEl.textContent) + 1;
         subsEl.parentElement.classList.add('pulse');
+        subsEl.parentElement.classList.add('glow-on-event'); // Glow on event
         showEventMessage(`New Sub: ${event.username}!`);
       } else if (event.type === 'raid') {
         raidsEl.textContent = parseInt(raidsEl.textContent) + 1;
         raidsEl.parentElement.classList.add('flash');
+        raidsEl.parentElement.classList.add('glow-on-event'); // Glow on event
         showEventMessage(`Raid Alert: ${event.username} brought ${event.viewers} viewers!`);
       }
+      // Add glow to username and logo on any event
+      usernameEl.classList.add('glow-on-event');
+      logoEl.classList.add('glow-on-event');
     }
 
     // Show event message with fade-in/out
@@ -127,18 +141,6 @@
         eventMessageEl.classList.add('opacity-0');
       }, 3000);
     }
-
-    // Start simulation
-    simulateWebSocket();
-
-    // To connect to a real WebSocket (e.g., Streamlabs):
-    /*
-    const ws = new WebSocket('wss://your-websocket-url');
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleEvent(data);
-    };
-    */
   </script>
 </body>
 </html>
