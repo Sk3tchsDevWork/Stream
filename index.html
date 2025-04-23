@@ -2,10 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Twitch Overlay</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-yN97syUSF49r2qkjSzRxM7oKrT1UYyzJ+gVPST3WUb3k6GZOBhF8IoWGoZQ2ID4O" crossorigin="anonymous"></script>
   <style>
+    body {
+      background: transparent;
+      overflow: hidden;
+    }
+    .glow-on-event {
+      animation: glow 2s ease-in-out;
+    }
+    .pulse {
+      animation: pulse 1s ease-in-out;
+    }
+    .flash {
+      animation: flash 1s ease-in-out 3;
+    }
     @keyframes glow {
       0% { box-shadow: 0 0 5px #ff00ff, 0 0 10px #00f7ff; }
       50% { box-shadow: 0 0 20px #ff00ff, 0 0 30px #00f7ff; }
@@ -21,31 +35,17 @@
       50% { background-color: #00f7ff; }
       100% { background-color: #ff00ff; }
     }
-
-    .glow-on-event {
-      animation: glow 2s ease-in-out;
-    }
-    .pulse {
-      animation: pulse 1s ease-in-out;
-    }
-    .flash {
-      animation: flash 1s ease-in-out 3;
-    }
-
     .star {
       position: absolute;
       background: white;
       border-radius: 50%;
       opacity: 0.7;
     }
-
-    body {
-      background: transparent !important;
-    }
   </style>
 </head>
-<body class="h-screen flex items-center justify-center overflow-hidden">
-  <div id="stars"></div>
+<body class="flex items-center justify-center h-screen">
+
+  <div id="stars" class="absolute w-full h-full"></div>
 
   <div class="relative w-full max-w-4xl flex flex-col items-center">
     <div id="username" class="absolute top-4 left-4 text-3xl font-bold text-white" style="text-shadow: 0 0 10px #ff00ff;">
@@ -77,7 +77,7 @@
   </div>
 
   <script>
-    // Create starry background
+    // Star field
     const starsContainer = document.getElementById('stars');
     for (let i = 0; i < 50; i++) {
       const star = document.createElement('div');
@@ -103,7 +103,7 @@
 
     function applyAnimation(el, animationClass) {
       el.classList.remove(animationClass);
-      void el.offsetWidth; // Force reflow
+      void el.offsetWidth;
       el.classList.add(animationClass);
     }
 
@@ -115,38 +115,47 @@
 
     function handleEvent(event) {
       if (event.type === 'follow') {
-        followsEl.textContent = parseInt(followsEl.textContent, 10) + 1;
+        followsEl.textContent = parseInt(followsEl.textContent) + 1;
         applyAnimation(followBox, 'pulse');
         applyAnimation(followBox, 'glow-on-event');
         showEventMessage(`New Follower: ${event.username}!`);
       } else if (event.type === 'subscribe') {
-        subsEl.textContent = parseInt(subsEl.textContent, 10) + 1;
+        subsEl.textContent = parseInt(subsEl.textContent) + 1;
         applyAnimation(subBox, 'pulse');
         applyAnimation(subBox, 'glow-on-event');
         showEventMessage(`New Sub: ${event.username}!`);
       } else if (event.type === 'raid') {
-        raidsEl.textContent = parseInt(raidsEl.textContent, 10) + 1;
+        raidsEl.textContent = parseInt(raidsEl.textContent) + 1;
         applyAnimation(raidBox, 'flash');
         applyAnimation(raidBox, 'glow-on-event');
-        showEventMessage(`Raid Alert: ${event.username} brought ${event.viewers} viewers!`);
+        showEventMessage(`Raid from ${event.username}: ${event.viewers} viewers!`);
       }
 
       applyAnimation(usernameEl, 'glow-on-event');
       applyAnimation(logoEl, 'glow-on-event');
     }
 
-    const ws = new WebSocket('wss://your-new-alert-system-websocket-url');
-    ws.onopen = () => console.log('Connected to WebSocket');
-    ws.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        handleEvent(data);
-      } catch (err) {
-        console.error('Invalid message:', err);
+    const socket = io('https://sockets.streamlabs.com', {
+      transports: ['websocket'],
+      query: {
+        token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjM4MTg5NURFQkZEQzFDRjQwMEUzIiwicmVhZF9vbmx5Ijp0cnVlLCJwcmV2ZW50X21hc3RlciI6dHJ1ZSwidHdpdGNoX2lkIjoiMTkwMjEyMjM1IiwieW91dHViZV9pZCI6IlVDYlRwT1Z4LUVIaUg0bEI5NkNydFJPUSIsInN0cmVhbWxhYnNfaWQiOiI0NTYzNjE4OTc4MTAxOTg1MjgiLCJ0aWt0b2tfaWQiOiI5M2YxZjM5YS1jNDU2LTVjZWItYTRkMi1kZGI0ZTNlOTgzNjQifQ.QyUDCZmtnvd9b_95B1jnP9S4PFrW4BQ7Kx1F4H3GI6Y'
       }
-    };
-    ws.onerror = (err) => console.error('WebSocket error:', err);
-    ws.onclose = () => console.log('WebSocket closed');
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to Streamlabs');
+    });
+
+    socket.on('event', (event) => {
+      const { type, message } = event;
+      if (type === 'follow') {
+        handleEvent({ type: 'follow', username: message.name });
+      } else if (type === 'subscription') {
+        handleEvent({ type: 'subscribe', username: message.name });
+      } else if (type === 'raid') {
+        handleEvent({ type: 'raid', username: message.name, viewers: message.viewers });
+      }
+    });
   </script>
 </body>
 </html>
