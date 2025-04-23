@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Twitch Overlay</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -21,126 +21,132 @@
       50% { background-color: #00f7ff; }
       100% { background-color: #ff00ff; }
     }
-    .glow-on-event { animation: glow 2s; }
-    .pulse { animation: pulse 1s; }
-    .flash { animation: flash 1s 3; }
+
+    .glow-on-event {
+      animation: glow 2s ease-in-out;
+    }
+    .pulse {
+      animation: pulse 1s ease-in-out;
+    }
+    .flash {
+      animation: flash 1s ease-in-out 3;
+    }
+
     .star {
       position: absolute;
       background: white;
       border-radius: 50%;
       opacity: 0.7;
     }
+
     body {
       background: transparent !important;
     }
   </style>
 </head>
 <body class="h-screen flex items-center justify-center overflow-hidden">
-  <!-- Background stars -->
   <div id="stars"></div>
 
   <div class="relative w-full max-w-4xl flex flex-col items-center">
-    <!-- Username -->
-    <div class="absolute top-4 left-4 text-3xl font-bold text-white" style="text-shadow: 0 0 10px #ff00ff;" id="username">
+    <div id="username" class="absolute top-4 left-4 text-3xl font-bold text-white" style="text-shadow: 0 0 10px #ff00ff;">
       SK3TCH.FPS
     </div>
 
-    <!-- Logo (Replace with your logo URL) -->
-    <img src="https://i.imgur.com/rDZ3WuU.png" alt="Logo" class="w-32 h-32" id="logo">
+    <img src="https://i.imgur.com/rDZ3WuU.png" alt="Logo" class="w-32 h-32" id="logo" />
 
-    <!-- Level/Points -->
     <div class="mt-4 text-2xl font-bold text-white" style="text-shadow: 0 0 10px #00f7ff;">
       LVL <span id="level">100</span>
     </div>
 
-    <!-- Stats -->
     <div class="absolute top-4 right-4 flex space-x-4">
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg" id="follow-box">
         <p class="text-white text-sm">FOLLOWS</p>
         <p class="text-white text-lg font-bold text-center" id="follows">1000</p>
       </div>
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg" id="sub-box">
         <p class="text-white text-sm">SUBS</p>
         <p class="text-white text-lg font-bold text-center" id="subs">50</p>
       </div>
-      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg">
+      <div class="bg-gray-800 bg-opacity-50 p-2 rounded-lg" id="raid-box">
         <p class="text-white text-sm">RAIDS</p>
         <p class="text-white text-lg font-bold text-center" id="raids">5</p>
       </div>
     </div>
 
-    <!-- Event Pop-up -->
     <div id="event-message" class="absolute bottom-10 text-white text-xl font-bold opacity-0 transition-opacity duration-500" style="text-shadow: 0 0 10px #ff00ff;"></div>
   </div>
 
   <script>
-    // Create random stars
+    // Create starry background
     const starsContainer = document.getElementById('stars');
     for (let i = 0; i < 50; i++) {
       const star = document.createElement('div');
-      star.classList.add('star');
-      star.style.width = `${Math.random() * 3}px`;
-      star.style.height = star.style.width;
+      const size = `${Math.random() * 3 + 1}px`;
+      star.className = 'star';
+      star.style.width = size;
+      star.style.height = size;
       star.style.left = `${Math.random() * 100}%`;
       star.style.top = `${Math.random() * 100}%`;
       starsContainer.appendChild(star);
     }
 
-    // Stats elements
-    const usernameEl = document.getElementById('username');
-    const logoEl = document.getElementById('logo');
     const followsEl = document.getElementById('follows');
     const subsEl = document.getElementById('subs');
     const raidsEl = document.getElementById('raids');
+    const usernameEl = document.getElementById('username');
+    const logoEl = document.getElementById('logo');
     const eventMessageEl = document.getElementById('event-message');
 
-    // Connect to your new alert system's WebSocket
-    const ws = new WebSocket('wss://your-new-alert-system-websocket-url');
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-    };
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleEvent(data);
-    };
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
+    const followBox = document.getElementById('follow-box');
+    const subBox = document.getElementById('sub-box');
+    const raidBox = document.getElementById('raid-box');
 
-    // Handle events
-    function handleEvent(event) {
-      if (event.type === 'follow') {
-        followsEl.textContent = parseInt(followsEl.textContent) + 1;
-        followsEl.parentElement.classList.add('pulse');
-        followsEl.parentElement.classList.add('glow-on-event'); // Glow on event
-        showEventMessage(`New Follower: ${event.username}!`);
-      } else if (event.type === 'subscribe') {
-        subsEl.textContent = parseInt(subsEl.textContent) + 1;
-        subsEl.parentElement.classList.add('pulse');
-        subsEl.parentElement.classList.add('glow-on-event'); // Glow on event
-        showEventMessage(`New Sub: ${event.username}!`);
-      } else if (event.type === 'raid') {
-        raidsEl.textContent = parseInt(raidsEl.textContent) + 1;
-        raidsEl.parentElement.classList.add('flash');
-        raidsEl.parentElement.classList.add('glow-on-event'); // Glow on event
-        showEventMessage(`Raid Alert: ${event.username} brought ${event.viewers} viewers!`);
-      }
-      // Add glow to username and logo on any event
-      usernameEl.classList.add('glow-on-event');
-      logoEl.classList.add('glow-on-event');
+    function applyAnimation(el, animationClass) {
+      el.classList.remove(animationClass);
+      void el.offsetWidth; // Force reflow
+      el.classList.add(animationClass);
     }
 
-    // Show event message with fade-in/out
     function showEventMessage(message) {
       eventMessageEl.textContent = message;
       eventMessageEl.classList.remove('opacity-0');
-      setTimeout(() => {
-        eventMessageEl.classList.add('opacity-0');
-      }, 3000);
+      setTimeout(() => eventMessageEl.classList.add('opacity-0'), 3000);
     }
+
+    function handleEvent(event) {
+      if (event.type === 'follow') {
+        followsEl.textContent = parseInt(followsEl.textContent, 10) + 1;
+        applyAnimation(followBox, 'pulse');
+        applyAnimation(followBox, 'glow-on-event');
+        showEventMessage(`New Follower: ${event.username}!`);
+      } else if (event.type === 'subscribe') {
+        subsEl.textContent = parseInt(subsEl.textContent, 10) + 1;
+        applyAnimation(subBox, 'pulse');
+        applyAnimation(subBox, 'glow-on-event');
+        showEventMessage(`New Sub: ${event.username}!`);
+      } else if (event.type === 'raid') {
+        raidsEl.textContent = parseInt(raidsEl.textContent, 10) + 1;
+        applyAnimation(raidBox, 'flash');
+        applyAnimation(raidBox, 'glow-on-event');
+        showEventMessage(`Raid Alert: ${event.username} brought ${event.viewers} viewers!`);
+      }
+
+      applyAnimation(usernameEl, 'glow-on-event');
+      applyAnimation(logoEl, 'glow-on-event');
+    }
+
+    const ws = new WebSocket('wss://your-new-alert-system-websocket-url');
+    ws.onopen = () => console.log('Connected to WebSocket');
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleEvent(data);
+      } catch (err) {
+        console.error('Invalid message:', err);
+      }
+    };
+    ws.onerror = (err) => console.error('WebSocket error:', err);
+    ws.onclose = () => console.log('WebSocket closed');
   </script>
 </body>
 </html>
